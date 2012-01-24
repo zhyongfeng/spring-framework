@@ -1,12 +1,12 @@
 /*
  * Copyright 2002-2012 the original author or authors.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,25 +56,28 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.SecurityContextProvider;
 import org.springframework.beans.factory.support.security.support.ConstructorBean;
 import org.springframework.beans.factory.support.security.support.CustomCallbackBean;
-import org.springframework.beans.factory.xml.XmlBeanFactory;
+import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
+
 
 /**
  * Security test case. Checks whether the container uses its privileges for its
  * internal work but does not leak them when touching/calling user code.
- * 
- *t The first half of the test case checks that permissions are downgraded when
+ *
+ * The first half of the test case checks that permissions are downgraded when
  * calling user code while the second half that the caller code permission get
  * through and Spring doesn't override the permission stack.
- * 
+ *
  * @author Costin Leau
+ * @author Chris Beams
  */
 public class CallbacksSecurityTests {
 
-	private XmlBeanFactory beanFactory;
+	private DefaultListableBeanFactory beanFactory;
 	private SecurityContextProvider provider;
 
+	@SuppressWarnings("unused")
 	private static class NonPrivilegedBean {
 
 		private String expectedName;
@@ -117,6 +120,7 @@ public class CallbacksSecurityTests {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private static class NonPrivilegedSpringCallbacksBean implements
 			InitializingBean, DisposableBean, BeanClassLoaderAware,
 			BeanFactoryAware, BeanNameAware {
@@ -156,7 +160,8 @@ public class CallbacksSecurityTests {
 		}
 	}
 
-	private static class NonPrivilegedFactoryBean implements SmartFactoryBean {
+	@SuppressWarnings("unused")
+	private static class NonPrivilegedFactoryBean implements SmartFactoryBean<Object> {
 		private String expectedName;
 
 		public NonPrivilegedFactoryBean(String expected) {
@@ -179,7 +184,7 @@ public class CallbacksSecurityTests {
 			return new Object();
 		}
 
-		public Class getObjectType() {
+		public Class<?> getObjectType() {
 			checkCurrentContext();
 			return Object.class;
 		}
@@ -194,6 +199,7 @@ public class CallbacksSecurityTests {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private static class NonPrivilegedFactory {
 
 		private final String expectedName;
@@ -299,7 +305,8 @@ public class CallbacksSecurityTests {
 		DefaultResourceLoader drl = new DefaultResourceLoader();
 		Resource config = drl
 				.getResource("/org/springframework/beans/factory/support/security/callbacks.xml");
-		beanFactory = new XmlBeanFactory(config);
+		beanFactory = new DefaultListableBeanFactory();
+		new XmlBeanDefinitionReader(beanFactory).loadBeanDefinitions(config);
 		beanFactory.setSecurityContextProvider(provider);
 	}
 
@@ -314,14 +321,14 @@ public class CallbacksSecurityTests {
 		}
 
 		final CustomCallbackBean bean = new CustomCallbackBean();
-		final Method method = bean.getClass().getMethod("destroy", null);
+		final Method method = bean.getClass().getMethod("destroy", (Class<?>[])null);
 		method.setAccessible(true);
 
 		try {
 			AccessController.doPrivileged(new PrivilegedExceptionAction<Object>() {
 
 				public Object run() throws Exception {
-					method.invoke(bean, null);
+					method.invoke(bean, (Class<?>)null);
 					return null;
 				}
 			}, acc);
@@ -489,10 +496,6 @@ public class CallbacksSecurityTests {
 
 		Permissions perms = new Permissions();
 		perms.add(new AuthPermission("getSubject"));
-		ProtectionDomain pd = new ProtectionDomain(null, perms);
-
-		AccessControlContext acc = new AccessControlContext(
-				new ProtectionDomain[] { pd });
 
 		final Subject subject = new Subject();
 		subject.getPrincipals().add(new TestPrincipal("user1"));
