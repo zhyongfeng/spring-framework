@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="parentFoo" class="org.springframework.beans.factory.config.Spr9552Tests$FooBean">
+		<property name="mapBean">
+			<bean class="org.springframework.beans.factory.config.Spr9552Tests$MapBean">
+				<property name="map">
+					<map>
+						<entry key="kParent" value="vParent"/>
+					</map>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
+	<bean id="childFoo" parent="parentFoo">
+		<property name="mapBean.map">
+			<map merge="true">
+				<entry key="kChild" value="vChild"/>
+			</map>
+		</property>
+	</bean>
+</beans>
